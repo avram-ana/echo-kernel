@@ -1,0 +1,224 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  user
+  admin
+}
+
+enum TimeOfDay {
+  morning
+  afternoon
+  evening
+  night
+}
+
+enum RecommendationType {
+  mood_match
+  dare
+  taste_based
+}
+
+enum PlaylistPreset {
+  comfort
+  late_night
+  emotional_wreck
+  villain_arc
+}
+
+model User {
+  id           String    @id @default(cuid())
+  username     String
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  role         Role      @default(user)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  tokenVersion Int       @default(0) @map("token_version")
+  displayName  String?   @map("display_name")
+  avatarUrl    String?   @map("avatar_url")
+  /// JSON string array of genre names
+  favoriteGenres Json?   @map("favorite_genres")
+  /// JSON array of { name: string }
+  favoriteArtists Json?  @map("favorite_artists")
+  /// JSON: { comfort, energy, distraction } booleans
+  musicIntent Json?       @map("music_intent")
+  profilePublic          Boolean  @default(false) @map("profile_public")
+  analyticsOptIn         Boolean  @default(true) @map("analytics_opt_in")
+  showListeningActivity  Boolean  @default(false) @map("show_listening_activity")
+  emailVerifiedAt        DateTime? @map("email_verified_at")
+
+  moods                   Mood[]
+  greetings               Greeting[]
+  songRatings             SongRating[]
+  recommendations         SongRecommendation[]
+  adminLogsAsAdmin        AdminLog[]              @relation("AdminActor")
+  playlists               Playlist[]
+  emailVerificationTokens EmailVerificationToken[]
+  passwordResetTokens     PasswordResetToken[]
+
+  @@map("users")
+}
+
+model EmailVerificationToken {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  tokenHash String    @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash])
+  @@map("email_verification_tokens")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  tokenHash String    @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash])
+  @@map("password_reset_tokens")
+}
+
+model Playlist {
+  id        String          @id @default(cuid())
+  userId    String          @map("user_id")
+  name      String
+  preset    PlaylistPreset?
+  createdAt DateTime        @default(now()) @map("created_at")
+
+  user  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items PlaylistItem[]
+
+  @@index([userId])
+  @@map("playlists")
+}
+
+model PlaylistItem {
+  id                   String   @id @default(cuid())
+  playlistId           String   @map("playlist_id")
+  songRecommendationId String   @map("song_recommendation_id")
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  playlist           Playlist           @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  songRecommendation SongRecommendation @relation(fields: [songRecommendationId], references: [id], onDelete: Cascade)
+
+  @@unique([playlistId, songRecommendationId])
+  @@index([playlistId])
+  @@map("playlist_items")
+}
+
+model Mood {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  description String
+  emoji       String
+  color       String
+  moodScore   Int      @map("mood_score")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recommendations SongRecommendation[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("moods")
+}
+
+/// Song catalog (imported from `data/echo_kernel_artist_songs_moods.csv`). Mood labels are canonical taxonomy.
+model Song {
+  id          String   @id @default(cuid())
+  title       String
+  artist      String
+  /// Canonical mood for matching user log inference (see `mood-catalog.ts`).
+  mood        String
+  /// Lowercase `artist|title` for dedup + rotation bookkeeping.
+  catalogKey  String   @unique @map("catalog_key")
+  genre       String   @default("catalog")
+  externalUrl String?  @map("external_url")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  recommendations SongRecommendation[]
+
+  @@index([mood])
+  @@map("songs")
+}
+
+model SongRecommendation {
+  id                  String               @id @default(cuid())
+  moodId              String               @map("mood_id")
+  userId              String               @map("user_id")
+  songId              String?              @map("song_id")
+  title               String
+  artist              String
+  genre               String?
+  recommendationType  RecommendationType @map("recommendation_type")
+  externalUrl         String?              @map("external_url")
+  explanationLabel    String               @map("explanation_label")
+  displayOrder        Int                  @default(0) @map("display_order")
+  createdAt           DateTime             @default(now()) @map("created_at")
+
+  mood           Mood             @relation(fields: [moodId], references: [id], onDelete: Cascade)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  song           Song?            @relation(fields: [songId], references: [id], onDelete: SetNull)
+  ratings        SongRating[]
+  playlistItems  PlaylistItem[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([moodId])
+  @@map("song_recommendations")
+}
+
+model SongRating {
+  id               String   @id @default(cuid())
+  userId           String   @map("user_id")
+  recommendationId String   @map("recommendation_id")
+  rating           Int
+  note             String?
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recommendation SongRecommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, recommendationId])
+  @@index([userId])
+  @@map("song_ratings")
+}
+
+model Greeting {
+  id         String    @id @default(cuid())
+  userId     String    @map("user_id")
+  content    String
+  timeOfDay  TimeOfDay @map("time_of_day")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, timeOfDay])
+  @@map("greetings")
+}
+
+model AdminLog {
+  id         String   @id @default(cuid())
+  adminId    String   @map("admin_id")
+  action     String
+  targetType String   @map("target_type")
+  targetId   String?  @map("target_id")
+  metadata   String?  @db.Text
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  admin User @relation("AdminActor", fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId, createdAt(sort: Desc)])
+  @@map("admin_logs")
+}
