@@ -1,4 +1,4 @@
-## 🎧 Echo Kernel
+## Echo Kernel
 
 A mood-driven music recommendation app.
 Users log their emotional state (text, color, intensity), and the system generates three song suggestions:
@@ -17,7 +17,7 @@ adaptive recommendation logic
 
 Echo Kernel explores the intersection between emotion, user behavior, and algorithmic suggestion.
 
-## ⚙️ Tech Stack
+## Tech Stack
 
 Frontend
 Built with React (Vite) and Tailwind CSS v4.
