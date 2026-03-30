@@ -1,62 +1,32 @@
-# Echo Kernel
+## 🎧 Echo Kernel
 
-A full-stack **mood journal + music diary**: log how you feel, get **three** song suggestions per entry (mood match, dare track, taste-based), rate songs to teach your “for you” picks, and curate **time-of-day greetings** for the home hero.
+A mood-driven music recommendation app.
+Users log their emotional state (text, color, intensity), and the system generates three song suggestions:
 
-**Stack:** React (Vite) · Tailwind CSS v4 · Node.js · Express · PostgreSQL · Prisma · JWT (httpOnly cookie)
+a matching track (aligned with the current mood)
+a contrast track (opposite emotional direction)
+a personalized track (based on user preferences)
 
-## Project structure
+Preferences are learned over time through a simple rating system, allowing recommendations to adapt dynamically to each user.
 
-```
-echo-kernel/
-├── backend/          # Express API + Prisma
-│   ├── prisma/       # schema, migrations, seed
-│   └── src/
-├── frontend/         # Vite + React + React Router
-└── README.md
-```
+Built as a full-stack application with a focus on:
 
-## Prerequisites
+interactive UI and immersive design
+user data handling and security
+adaptive recommendation logic
 
-- Node.js 20+ and npm
-- PostgreSQL 14+ (local or Docker)
+Echo Kernel explores the intersection between emotion, user behavior, and algorithmic suggestion.
 
-### Environment variables (`backend/.env`)
+## ⚙️ Tech Stack
 
-| Variable        | Description                          |
-|----------------|--------------------------------------|
-| `DATABASE_URL` | PostgreSQL connection string         |
-| `JWT_SECRET`   | Long random string for signing JWTs  |
-| `PORT`         | API port (default `4000`)            |
-| `CLIENT_ORIGIN`| CORS origin (default `http://localhost:5173`) |
+Frontend
+Built with React (Vite) and Tailwind CSS v4.
 
-(Root `package.json` uses `concurrently` to run backend + frontend.)
+Backend
+Powered by Node.js and Express, handling authentication, business logic, and API routing. Uses bcrypt for secure authentication.
 
-## Features implemented
+Database
+Uses PostgreSQL with Prisma ORM for type-safe data access and relational data modeling (users, moods, recommendations, ratings).
 
-- **Auth:** sign up, login, logout, bcrypt password hashes, JWT in **httpOnly** cookie
-- **Roles:** `user` / `admin` with protected API routes and UI gates
-- **Mood log:** text, emoji, color, score 1–10 → persists **3** `song_recommendations` per mood
-- **Soundtrack:** chronological moods + three cards each (with explanation labels)
-- **Rate:** pending + history; ratings influence **taste_based** picks
-- **Analytics:** totals, averages, genre inference, mood bars, top emojis/colors
-- **Greeting gallery:** CRUD by time-of-day; home picks a random greeting for the current window
-- **UI:** glassmorphism, lime/pastel atmosphere, bottom nav, loading/empty states, delete confirmations
-
-## API overview
-
-| Method | Path | Notes |
-|--------|------|--------|
-| POST | `/api/auth/register` | Creates `user` role |
-| POST | `/api/auth/login` | Sets cookie |
-| POST | `/api/auth/logout` | Clears cookie |
-| GET | `/api/auth/me` | Current user |
-| GET | `/api/home/summary` | Greeting + dashboard stats |
-| POST | `/api/moods` | Create mood + recommendations |
-| GET | `/api/moods?search=` | Soundtrack list |
-| GET | `/api/ratings/pending` | Unrated recommendations |
-| GET | `/api/ratings/history` | Past ratings |
-| POST | `/api/ratings` | Upsert rating |
-| GET/POST/DELETE | `/api/greetings` | User greetings |
-| GET | `/api/analytics` | User insights |
-| GET/DELETE | `/api/admin/users` | Admin |
-| GET/DELETE | `/api/admin/greetings` | Admin |
+API
+RESTful API structure (/api/**) that connects frontend and backend, supporting authentication, mood logging, recommendation generation, ratings, and analytics.
